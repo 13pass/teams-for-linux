@@ -636,6 +636,21 @@ function initializeGraphApiClient() {
   if (mainWindow) {
     graphApiClient.initialize(mainWindow);
     console.debug("[GRAPH_API] Graph API client initialized with main window");
+
+    if (config.graphApi.probeMessageAccess) {
+      // Best-effort: after Teams loads, give sign-in time to complete, then
+      // log a one-time message-access probe. If the token isn't ready the
+      // probe just reports it; re-run any time from DevTools via
+      // window.electronAPI.graphApi.probeMessageAccess().
+      const PROBE_DELAY_MS = 20000;
+      mainWindow.webContents.once("did-finish-load", () => {
+        setTimeout(() => {
+          graphApiClient
+            .probeMessageAccess()
+            .catch((error) => console.error("[GRAPH_API] Probe failed", { message: error.message }));
+        }, PROBE_DELAY_MS);
+      });
+    }
   } else {
     console.warn("[GRAPH_API] Main window not available, Graph API client not fully initialized");
   }

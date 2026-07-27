@@ -530,7 +530,8 @@ All topics use retained messages by default, ensuring subscribers receive the la
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `graphApi.enabled` | `boolean` | `false` | Enable Microsoft Graph API integration for calendar and mail access |
+| `graphApi.enabled` | `boolean` | `false` | Enable Microsoft Graph API integration for calendar, mail, and chat/channel access |
+| `graphApi.probeMessageAccess` | `boolean` | `false` | After sign-in, log a one-time probe of chat/channel message-read access (no content logged) so you can see which Graph scopes the borrowed Teams token carries. Requires `graphApi.enabled`. |
 
 ```json title="Example Configuration"
 {
@@ -541,7 +542,15 @@ All topics use retained messages by default, ensuring subscribers receive the la
 ```
 
 > [!NOTE]
-> This feature uses Teams' existing authentication to access Microsoft Graph API endpoints. No additional login required. Currently supports reading user profile, calendar events, and mail messages.
+> This feature uses Teams' existing authentication to access Microsoft Graph API endpoints. No additional login required. Supports reading user profile, calendar events, mail messages, and (via `getChats` / `getChatMessages` / `getChannelMessages`) Teams chats and channel messages.
+
+#### Reading Teams messages
+
+The Graph client can read chats and channel messages — `GET /me/chats`, `GET /chats/{id}/messages`, and `GET /teams/{id}/channels/{id}/messages` — exposed on the renderer as `window.electronAPI.graphApi.getChats(...)`, `getChatMessages(...)`, `getJoinedTeams()`, `getChannels(...)`, and `getChannelMessages(...)`.
+
+Because these reuse the Teams client's own Graph token, they only work if that token already carries the required scopes: `Chat.Read` for chats and `ChannelMessage.Read.All` for channel messages. The latter is usually **not** present in the delegated Teams token and returns `403`; a dedicated Entra app registration is the durable path for channel-message access.
+
+Set `graphApi.probeMessageAccess: true` (or run `await window.electronAPI.graphApi.probeMessageAccess()` in the Teams window DevTools) to log which reads succeed before relying on them. See [`app/graphApi/README.md`](https://github.com/IsmaelMartinez/teams-for-linux/blob/main/app/graphApi/README.md) for scope and compliance notes — reading/exporting Teams messages is often governed by organisation policy.
 
 ### Quick Chat
 

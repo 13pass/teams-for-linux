@@ -456,6 +456,123 @@ class GraphApiClient {
       return { success: false, error: error.message || error.toString() };
     }
   }
+
+  //
+  // Read helpers (chats + channels)
+  //
+  // These borrow the Teams client's Graph token, so they only work if that
+  // token already carries the required scopes: Chat.ReadBasic/Chat.Read for
+  // chats and ChannelMessage.Read.All for channel messages. Use
+  // probeMessageAccess() to check before relying on them. No content is logged.
+  //
+
+  /** List the signed-in user's chats (needs Chat.ReadBasic or Chat.Read). */
+  async getChats(options = {}) {
+    logger.debug('[GRAPH_API] Getting chats');
+    const queryString = this._buildODataQuery(options);
+    return await this.makeRequest(queryString ? `/me/chats?${queryString}` : '/me/chats');
+  }
+
+  /** Get messages in a chat (needs Chat.Read). */
+  async getChatMessages(chatId, options = {}) {
+    if (typeof chatId !== 'string' || !chatId.trim()) {
+      return { success: false, error: 'chatId is required' };
+    }
+    logger.debug('[GRAPH_API] Getting chat messages');
+    const base = `/chats/${encodeURIComponent(chatId)}/messages`;
+    const queryString = this._buildODataQuery(options);
+    return await this.makeRequest(queryString ? `${base}?${queryString}` : base);
+  }
+
+  /** List the teams the user has joined (needs Team.ReadBasic.All). */
+  async getJoinedTeams() {
+    logger.debug('[GRAPH_API] Getting joined teams');
+    return await this.makeRequest('/me/joinedTeams');
+  }
+
+  /** List a team's channels (needs Channel.ReadBasic.All). */
+  async getChannels(teamId) {
+    if (typeof teamId !== 'string' || !teamId.trim()) {
+      return { success: false, error: 'teamId is required' };
+    }
+    logger.debug('[GRAPH_API] Getting channels');
+    return await this.makeRequest(`/teams/${encodeURIComponent(teamId)}/channels`);
+  }
+
+  /** Get messages in a channel (needs ChannelMessage.Read.All). */
+  async getChannelMessages(teamId, channelId, options = {}) {
+    if (typeof teamId !== 'string' || !teamId.trim() || typeof channelId !== 'string' || !channelId.trim()) {
+      return { success: false, error: 'teamId and channelId are required' };
+    }
+    logger.debug('[GRAPH_API] Getting channel messages');
+    const base = `/teams/${encodeURIComponent(teamId)}/channels/${encodeURIComponent(channelId)}/messages`;
+    const queryString = this._buildODataQuery(options);
+    return await this.makeRequest(queryString ? `${base}?${queryString}` : base);
+  }
+
+  /**
+   * Probe whether the borrowed Teams token can READ messages, without
+   * returning any message content. Samples one chat and one channel and
+   * reports per-area outcome + a scope hint, so you can tell up front whether
+   * the required Graph scopes are present in this tenant.
+   */
+  async probeMessageAccess() {
+    const summarize = (r) => {
+      if (!r) return { ok: false, status: null, error: 'no result' };
+      if (r.success) {
+        return { ok: true, status: 200, count: Array.isArray(r.data?.value) ? r.data.value.length : 0 };
+      }
+      return { ok: false, status: r.status ?? null, error: r.error };
+    };
+
+    if (!this.enabled) {
+      const report = { success: false, note: 'Graph API disabled (set graphApi.enabled = true)' };
+      logger.info('[GRAPH_API] Message-access probe', report);
+      return report;
+    }
+
+    // 1) List chats, then 2) sample one chat's messages.
+    const chats = await this.getChats({ top: 1 });
+    const chatsResult = summarize(chats);
+    const firstChatId = chats.success ? chats.data?.value?.[0]?.id : null;
+    const chatMessages = firstChatId
+      ? summarize(await this.getChatMessages(firstChatId, { top: 1 }))
+      : { ok: false, status: null, error: chats.success ? 'no chats to sample' : 'skipped (chats list failed)' };
+
+    // 3) Find a team + channel, then 4) sample channel messages.
+    const teams = await this.getJoinedTeams();
+    const firstTeamId = teams.success ? teams.data?.value?.[0]?.id : null;
+    let channelMessages;
+    if (firstTeamId) {
+      const channels = await this.getChannels(firstTeamId);
+      const firstChannelId = channels.success ? channels.data?.value?.[0]?.id : null;
+      channelMessages = firstChannelId
+        ? summarize(await this.getChannelMessages(firstTeamId, firstChannelId, { top: 1 }))
+        : { ok: false, status: channels.status ?? null, error: channels.success ? 'no channels to sample' : channels.error };
+    } else {
+      channelMessages = { ok: false, status: teams.status ?? null, error: teams.success ? 'no joined teams to sample' : teams.error };
+    }
+
+    const scopeHint = (primary, secondary, name) => {
+      if (primary.ok || secondary.ok) return 'likely present';
+      if (primary.status === 403 || secondary.status === 403) return `FORBIDDEN (${name} scope missing)`;
+      if (primary.status === 401 || secondary.status === 401) return 'unauthenticated (sign in first)';
+      return 'inconclusive';
+    };
+
+    const report = {
+      success: true,
+      chats: chatsResult,
+      chatMessages,
+      channelMessages,
+      hints: {
+        chatRead: scopeHint(chatsResult, chatMessages, 'Chat.Read'),
+        channelMessageRead: scopeHint(channelMessages, channelMessages, 'ChannelMessage.Read.All'),
+      },
+    };
+    logger.info('[GRAPH_API] Message-access probe', report);
+    return report;
+  }
 }
 
 module.exports = GraphApiClient;

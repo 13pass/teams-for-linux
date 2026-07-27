@@ -900,14 +900,20 @@ module.exports = {
       graphApi: {
         default: {
           enabled: false,
+          probeMessageAccess: false,
         },
-        describe: "Microsoft Graph API integration for enhanced Teams functionality (calendar, user profile, etc.)",
+        describe: "Microsoft Graph API integration for enhanced Teams functionality (calendar, user profile, chat/channel read helpers, etc.)",
         type: "object",
         fields: {
           "enabled": {
             type: "boolean",
             describe:
-              "Enable the Microsoft Graph API integration for calendar and mail access.",
+              "Enable the Microsoft Graph API integration for calendar, mail, and chat/channel access.",
+          },
+          "probeMessageAccess": {
+            type: "boolean",
+            describe:
+              "After sign-in, log a one-time probe of chat/channel message-read access so you can see whether the borrowed Teams token carries the required Graph scopes (Chat.Read, ChannelMessage.Read.All). Requires enabled. No message content is logged.",
           },
         },
         applyMode: "restart",

@@ -93,6 +93,12 @@ const allowedChannels = new Set([
   'graph-api-get-mail-messages',
   'graph-api-search-people',
   'graph-api-send-chat-message',
+  'graph-api-get-chats',
+  'graph-api-get-chat-messages',
+  'graph-api-get-joined-teams',
+  'graph-api-get-channels',
+  'graph-api-get-channel-messages',
+  'graph-api-probe-message-access',
 
   // Join meeting dialog
   'join-meeting-submit',

@@ -93,8 +93,74 @@ function registerGraphApiHandlers(ipcMain, graphApiClient) {
     }
   });
 
+  // List the signed-in user's chats
+  ipcMain.handle('graph-api-get-chats', async (_event, options) => {
+    if (!graphApiClient) return notEnabled;
+    try {
+      return await graphApiClient.getChats(options);
+    } catch (error) {
+      logger.error('[GRAPH_API] getChats failed:', { message: error.message });
+      return { success: false, error: error.message };
+    }
+  });
+
+  // Get messages in a chat
+  ipcMain.handle('graph-api-get-chat-messages', async (_event, chatId, options) => {
+    if (!graphApiClient) return notEnabled;
+    try {
+      return await graphApiClient.getChatMessages(chatId, options);
+    } catch (error) {
+      logger.error('[GRAPH_API] getChatMessages failed:', { message: error.message });
+      return { success: false, error: error.message };
+    }
+  });
+
+  // List the teams the user has joined
+  ipcMain.handle('graph-api-get-joined-teams', async () => {
+    if (!graphApiClient) return notEnabled;
+    try {
+      return await graphApiClient.getJoinedTeams();
+    } catch (error) {
+      logger.error('[GRAPH_API] getJoinedTeams failed:', { message: error.message });
+      return { success: false, error: error.message };
+    }
+  });
+
+  // List a team's channels
+  ipcMain.handle('graph-api-get-channels', async (_event, teamId) => {
+    if (!graphApiClient) return notEnabled;
+    try {
+      return await graphApiClient.getChannels(teamId);
+    } catch (error) {
+      logger.error('[GRAPH_API] getChannels failed:', { message: error.message });
+      return { success: false, error: error.message };
+    }
+  });
+
+  // Get messages in a channel
+  ipcMain.handle('graph-api-get-channel-messages', async (_event, teamId, channelId, options) => {
+    if (!graphApiClient) return notEnabled;
+    try {
+      return await graphApiClient.getChannelMessages(teamId, channelId, options);
+    } catch (error) {
+      logger.error('[GRAPH_API] getChannelMessages failed:', { message: error.message });
+      return { success: false, error: error.message };
+    }
+  });
+
+  // Probe whether the borrowed token can read chat/channel messages
+  ipcMain.handle('graph-api-probe-message-access', async () => {
+    if (!graphApiClient) return notEnabled;
+    try {
+      return await graphApiClient.probeMessageAccess();
+    } catch (error) {
+      logger.error('[GRAPH_API] probeMessageAccess failed:', { message: error.message });
+      return { success: false, error: error.message };
+    }
+  });
+
   logger.debug('[GRAPH_API] IPC handlers registered', {
-    channels: 7,
+    channels: 13,
     enabled: !!graphApiClient
   });
 }

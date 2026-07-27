@@ -173,6 +173,12 @@ globalThis.electronAPI = {
     getCalendarView: (start, end, options) => ipcRenderer.invoke("graph-api-get-calendar-view", start, end, options),
     createCalendarEvent: (event) => ipcRenderer.invoke("graph-api-create-calendar-event", event),
     getMailMessages: (options) => ipcRenderer.invoke("graph-api-get-mail-messages", options),
+    getChats: (options) => ipcRenderer.invoke("graph-api-get-chats", options),
+    getChatMessages: (chatId, options) => ipcRenderer.invoke("graph-api-get-chat-messages", chatId, options),
+    getJoinedTeams: () => ipcRenderer.invoke("graph-api-get-joined-teams"),
+    getChannels: (teamId) => ipcRenderer.invoke("graph-api-get-channels", teamId),
+    getChannelMessages: (teamId, channelId, options) => ipcRenderer.invoke("graph-api-get-channel-messages", teamId, channelId, options),
+    probeMessageAccess: () => ipcRenderer.invoke("graph-api-probe-message-access"),
   },
 
   openChatWithUser: (email) => {

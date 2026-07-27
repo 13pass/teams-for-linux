@@ -995,16 +995,23 @@
       "name": "graphApi",
       "type": "object",
       "default": {
-        "enabled": false
+        "enabled": false,
+        "probeMessageAccess": false
       },
-      "description": "Microsoft Graph API integration for enhanced Teams functionality (calendar, user profile, etc.)",
+      "description": "Microsoft Graph API integration for enhanced Teams functionality (calendar, user profile, chat/channel read helpers, etc.)",
       "applyMode": "restart",
       "fields": [
         {
           "path": "enabled",
           "type": "boolean",
           "default": false,
-          "description": "Enable the Microsoft Graph API integration for calendar and mail access."
+          "description": "Enable the Microsoft Graph API integration for calendar, mail, and chat/channel access."
+        },
+        {
+          "path": "probeMessageAccess",
+          "type": "boolean",
+          "default": false,
+          "description": "After sign-in, log a one-time probe of chat/channel message-read access so you can see whether the borrowed Teams token carries the required Graph scopes (Chat.Read, ChannelMessage.Read.All). Requires enabled. No message content is logged."
         }
       ]
     },
