@@ -157,7 +157,7 @@ When contributing:
 
 The project documentation is built with Docusaurus and deployed to GitHub Pages:
 - **URL**: https://ismaelmartinez.github.io/teams-for-linux/
-- **Platform**: Docusaurus 3.9.2
+- **Platform**: Docusaurus 3 (version pinned in `docs-site/package.json`)
 - **Local Development**: `cd docs-site && npm run start`
 - **Deployment**: Automated via GitHub Actions
 
@@ -192,8 +192,8 @@ When adding or modifying IPC channels, you must:
 
 ```javascript
 // REQUIRED: These modules need ipcRenderer for IPC communication
-const modulesRequiringIpc = ["settings", "theme", "trayIconRenderer", "mqttStatusMonitor"];
-if (modulesRequiringIpc.includes(module.name)) {
+const modulesRequiringIpc = new Set(["settings", "theme", "trayIconRenderer", "mqttStatusMonitor", /* …other modules */]);
+if (modulesRequiringIpc.has(module.name)) {
   moduleInstance.init(config, ipcRenderer);
 }
 ```
